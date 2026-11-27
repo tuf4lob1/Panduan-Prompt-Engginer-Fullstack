@@ -1,0 +1,23 @@
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# Runtime & Dependencies (untuk projek turunan template)
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+.next/
+.svelte-kit/
+coverage/
+
+# Rahasia Lingkungan (JANGAN PERNAH COMMIT .env ASLI!)
+.env
+.env.*
+!.env.example
+

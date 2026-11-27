@@ -1,0 +1,77 @@
+# Antigravity Dynamic Workflow Script (.wf)
+# Eksekusi melalui tool `run_workflow(ScriptPath=".../workflows/blueprint_discovery_pipeline.wf")`
+# Menggunakan ekstensi `.wf` karena runtime `run_workflow` memakai kompilator Python khusus
+# `PyCF_ALLOW_TOP_LEVEL_AWAIT` + primitif global (`phase`, `agent`, `parallel`, `log`).
+
+SUMMARY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "divisi": {"type": "string"},
+        "artefak_ditulis": {"type": "array", "items": {"type": "string"}},
+        "keputusan_kunci": {"type": "array", "items": {"type": "string"}},
+        "pertanyaan_terbuka": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["divisi", "artefak_ditulis", "keputusan_kunci", "pertanyaan_terbuka"],
+}
+
+
+async def jalankan_discovery_ke_blueprint() -> dict:
+    phase("Fase 1: Analisis Sistem, Domain & Mesin Status Birokrasi (D-01)")
+    hasil_analisis = await agent(
+        prompt=(
+            "Jalankan mandat penuh Divisi 01 berdasarkan docs/project/00-governance/SCALE_PROFILE.md. "
+            "Aktifkan skill deep-domain-bureaucracy-analysis terlebih dahulu, lakukan riset mendalam, "
+            "dan lengkapi ketiga dokumen di docs/project/01-analysis/ hingga berstatus DALAM_REVIEW."
+        ),
+        schema=SUMMARY_SCHEMA,
+        role="D-01 Principal Analyst",
+        type_name="principal-analyst",
+    )
+    log("Hasil Analisis D-01:", hasil_analisis)
+
+    if hasil_analisis["pertanyaan_terbuka"]:
+        log(
+            "PERHATIAN: Terdapat ambiguitas bisnis terbuka yang perlu dikonfirmasi "
+            "ke pengguna sebelum membekukan Gate 1."
+        )
+        return {"analisis": hasil_analisis, "blueprint": None}
+
+    phase("Fase 2: Arsitektur Ringan (D-02) & Desain UI/UX Anti-Slop (D-03) Paralel")
+    tugas_paralel = [
+        {
+            "type_name": "principal-architect",
+            "role": "D-02 Principal Architect",
+            "prompt": (
+                "Berdasarkan SCALE_PROFILE.md dan ketiga dokumen di docs/project/01-analysis/, "
+                "aktifkan skill system-data-lightweight-architecture lalu susun lengkap ketiga dokumen "
+                "di docs/project/02-architecture/ (ADR stack ringan, skema DB + indeks ESR, kontrak API & keamanan)."
+            ),
+        },
+        {
+            "type_name": "principal-ux-designer",
+            "role": "D-03 Principal UX Designer",
+            "prompt": (
+                "Berdasarkan SCALE_PROFILE.md dan ketiga dokumen di docs/project/01-analysis/, "
+                "aktifkan skill anti-slop-cognitive-ux-design beserta referensinya, lakukan riset paradigma UI/UX, "
+                "dan susun lengkap ketiga dokumen di docs/project/03-design/ (bebas dinding teks & 7-kondisi layar)."
+            ),
+        },
+    ]
+
+    hasil_blueprint = await parallel(
+        tugas_paralel,
+        lambda item: agent(
+            prompt=item["prompt"],
+            schema=SUMMARY_SCHEMA,
+            role=item["role"],
+            type_name=item["type_name"],
+        ),
+    )
+    for h in hasil_blueprint:
+        log("Selesai:", h["divisi"], "->", h["artefak_ditulis"])
+
+    return {"analisis": hasil_analisis, "blueprint": hasil_blueprint}
+
+
+print(await jalankan_discovery_ke_blueprint())
+

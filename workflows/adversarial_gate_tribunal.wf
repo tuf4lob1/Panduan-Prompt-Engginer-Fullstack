@@ -1,0 +1,86 @@
+# Antigravity Dynamic Workflow Script (.wf)
+# Eksekusi melalui tool `run_workflow(ScriptPath=".../workflows/adversarial_gate_tribunal.wf")`
+# Menggunakan ekstensi `.wf` karena runtime `run_workflow` memakai kompilator Python khusus
+# `PyCF_ALLOW_TOP_LEVEL_AWAIT` + primitif global (`phase`, `agent`, `parallel`, `log`).
+
+TRIBUNAL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "gerbang": {"type": "string"},
+        "vonis": {"type": "string", "enum": ["LULUS", "BLOKIR"]},
+        "jumlah_kritis_tinggi": {"type": "integer"},
+        "temuan_utama": {"type": "array", "items": {"type": "string"}},
+        "laporan_path": {"type": "string"},
+    },
+    "required": [
+        "gerbang",
+        "vonis",
+        "jumlah_kritis_tinggi",
+        "temuan_utama",
+        "laporan_path",
+    ],
+}
+
+
+async def jalankan_sidang_tribunal() -> dict:
+    phase("Sidang Penguji Silang Paralel: Security Red-Team, QA Chaos & SRE Maintainability")
+
+    panel_penguji = [
+        {
+            "type_name": "principal-redteam",
+            "role": "Gate 4: AppSec Red-Team",
+            "prompt": (
+                "Aktifkan skill adversarial-appsec-redteam. Audit seluruh kode aplikasi secara 100% Read-Only "
+                "terhadap pembobolan IDOR, lompatan status birokrasi, Plt/Plh palsu, race condition saldo, injeksi, "
+                "dan kebocoran PII. Tulis laporan lengkap di docs/project/04-quality-gates/GATE-4-SECURITY-REDTEAM.md."
+            ),
+        },
+        {
+            "type_name": "principal-qa-sdet",
+            "role": "Gate 5: QA Chaos & 7-State",
+            "prompt": (
+                "Aktifkan skill stateful-qa-chaos-verification. Jalankan & lengkapi pengujian transisi mesin status, "
+                "input batas ekstrem, idempotensi, dan kepatuhan spesifikasi layar 7-kondisi. "
+                "Tulis laporan di docs/project/04-quality-gates/GATE-5-QA-VERIFICATION.md."
+            ),
+        },
+        {
+            "type_name": "principal-sre-steward",
+            "role": "Gate 6: SRE & Maintainability",
+            "prompt": (
+                "Aktifkan skill sre-maintainability-stewardship. Audit entropi kode (kemudahan maintenance, file raksasa, "
+                "kebijakan hardcoded CFG-XX), efisiensi konfigurasi server ringan, health check, dan susun "
+                "docs/project/08-operations/MAINTAINABILITY_AUDIT.md serta DEPLOYMENT_RUNBOOK.md."
+            ),
+        },
+    ]
+
+    vonis_panel = await parallel(
+        panel_penguji,
+        lambda p: agent(
+            prompt=p["prompt"],
+            schema=TRIBUNAL_SCHEMA,
+            role=p["role"],
+            type_name=p["type_name"],
+        ),
+    )
+
+    blokir = [
+        v
+        for v in vonis_panel
+        if v["vonis"] == "BLOKIR" or v["jumlah_kritis_tinggi"] > 0
+    ]
+    for v in vonis_panel:
+        log(
+            f"[{v['gerbang']}] Vonis={v['vonis']} | "
+            f"Temuan Berat={v['jumlah_kritis_tinggi']} | Bukti={v['laporan_path']}"
+        )
+
+    status_akhir = (
+        "DITAHAN_WAJIB_PERBAIKAN" if blokir else "LULUS_PARIPURNA_SIAP_RILIS"
+    )
+    return {"status_sidang": status_akhir, "detail_panel": vonis_panel}
+
+
+print(await jalankan_sidang_tribunal())
+

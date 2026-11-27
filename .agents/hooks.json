@@ -1,0 +1,28 @@
+{
+  "maeos-session-state-injector": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 ../scripts/gates/session-start-state.py",
+        "timeout": 5
+      }
+    ]
+  },
+  "maeos-zero-premature-coding-guard": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ../scripts/gates/pre-tool-gate-guard.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+
